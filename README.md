@@ -1,10 +1,11 @@
 package com.sahambank.fccr.core.service.Impl;
 
 import com.lowagie.text.*;
+import com.lowagie.text.Font;
+import com.lowagie.text.Rectangle;
 import com.lowagie.text.pdf.*;
 import com.sahambank.fccr.core.dto.ConfigMoteurDetail.NotationResponse;
-import com.sahambank.fccr.core.dto.UserInfo.Action;
-import com.sahambank.fccr.core.entities.*;
+import com.sahambank.fccr.core.dto.UserInfo.Action; import com.sahambank.fccr.core.entities.*;
 import com.sahambank.fccr.core.repository.FieldConfigurationRepository;
 import com.sahambank.fccr.core.repository.NotationRepository;
 import com.sahambank.fccr.core.repository.SegmentRepository;
@@ -20,8 +21,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-@Service
-public class PdfServiceImpl implements PdfService {
+@Service public class PdfServiceImpl implements PdfService {
 
     private final NotationRepository notationRepository;
     private final SegmentRepository segmentRepository;
@@ -42,9 +42,9 @@ public class PdfServiceImpl implements PdfService {
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
 
     public PdfServiceImpl(NotationRepository notationRepository, SegmentRepository segmentRepository,
-                         FieldConfigurationRepository fieldConfigurationRepository,
-                         CurrentUserService currentUserService,
-                         AuthorizationService authorizationService) {
+                          FieldConfigurationRepository fieldConfigurationRepository,
+                          CurrentUserService currentUserService,
+                          AuthorizationService authorizationService) {
         this.notationRepository = notationRepository;
         this.segmentRepository = segmentRepository;
         this.fieldConfigurationRepository = fieldConfigurationRepository;
@@ -61,7 +61,7 @@ public class PdfServiceImpl implements PdfService {
                 .orElseThrow(() -> new EntityNotFoundException("Notation introuvable avec l'ID : " + notationId));
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        
+
         // === PAGE SIZE: Landscape A4 avec marges réduites ===
         Rectangle pageSize = PageSize.A4.rotate(); // Landscape
         Document document = new Document(pageSize, 30, 30, 50, 30); // left, right, top, bottom margins
@@ -72,19 +72,8 @@ public class PdfServiceImpl implements PdfService {
             @Override
             public void onEndPage(PdfWriter writer, Document document) {
                 PdfContentByte cb = writer.getDirectContent();
-                try {
-                    InputStream is = getClass().getResourceAsStream("/Assets/logo-SAHAM.jfif");
-                    if (is != null) {
-                        byte[] logoBytes = is.readAllBytes();
-                        Image logo = Image.getInstance(logoBytes);
-                        logo.scaleToFit(80, 80);
-                        logo.setAbsolutePosition(document.leftMargin(), document.top() + 10);
-                        cb.addImage(logo);
-                    }
-                } catch (Exception e) {
-                    // Log ou ignorer si le logo n'est pas trouvé
-                }
-                
+
+
                 // Ligne de séparation en haut
                 cb.setColorStroke(PRIMARY_COLOR);
                 cb.setLineWidth(1f);
@@ -97,7 +86,7 @@ public class PdfServiceImpl implements PdfService {
         document.open();
 
         // --- Badge "C2 - CONFIDENTIAL" ---
-        Paragraph confidential = new Paragraph("C2 - CONFIDENTIAL", 
+        Paragraph confidential = new Paragraph("C2 - CONFIDENTIAL",
                 new Font(Font.HELVETICA, 9, Font.BOLD, PRIMARY_COLOR));
         confidential.setSpacingAfter(8);
         document.add(confidential);
@@ -133,7 +122,7 @@ public class PdfServiceImpl implements PdfService {
         document.add(buildProductTable(notation));
 
         // --- Pied de page ---
-        Paragraph footer = new Paragraph("C2 - CONFIDENTIAL", 
+        Paragraph footer = new Paragraph("C2 - CONFIDENTIAL",
                 new Font(Font.HELVETICA, 8, Font.NORMAL, PRIMARY_COLOR));
         footer.setAlignment(Element.ALIGN_RIGHT);
         footer.setSpacingBefore(10);
@@ -143,7 +132,7 @@ public class PdfServiceImpl implements PdfService {
         return out.toByteArray();
     }
 
-    // ========== Construction des sections ==========
+// ========== Construction des sections ==========
 
     /**
      * Construit la section info client en format 2 colonnes (texte structuré, pas tableau)
@@ -167,19 +156,19 @@ public class PdfServiceImpl implements PdfService {
         // mapping depuis l'ancienne buildInfoTable
         leftContent.add(addInfoLine("Client", notation.getClientCode()));
         leftContent.add(addInfoLine("Segment", notation.getSegmentCode()));
-        leftContent.add(addInfoLine("Date de création", 
+        leftContent.add(addInfoLine("Date de création",
                 notation.getCreatedAt() != null ? notation.getCreatedAt().format(DATE_FORMATTER) : "-"));
 
         String userName = (currentUser.getFirstName() != null ? currentUser.getFirstName() : "") + " " +
                 (currentUser.getLastName() != null ? currentUser.getLastName() : "");
-        leftContent.add(addInfoLine("User name", userName.trim()));
+        leftContent.add(addInfoLine("Nom Utilisateur", userName.trim()));
 
         String roles = currentUser.getRoles().stream()
                 .map(role -> role.getCode().name())
                 .collect(Collectors.joining(", "));
-        leftContent.add(addInfoLine("Roles", roles));
+        leftContent.add(addInfoLine("Role", roles));
 
-        leftContent.add(addInfoLine("Organization", getCurrentUserEntiteCode()));
+        leftContent.add(addInfoLine("Organisation", getCurrentUserEntiteCode()));
 
         leftCell.addElement(leftContent);
         mainTable.addCell(leftCell);
@@ -190,11 +179,11 @@ public class PdfServiceImpl implements PdfService {
         rightCell.setPadding(0);
 
         Paragraph rightContent = new Paragraph();
-        rightContent.add(addInfoLine("Date & time", 
+        rightContent.add(addInfoLine("Date & Heure",
                 notation.getCreatedAt() != null ? notation.getCreatedAt().format(DATE_FORMATTER) : "-"));
-        rightContent.add(addInfoLine("Rating (note)", 
+        rightContent.add(addInfoLine("Rating (note)",
                 notation.getNote() != null ? notation.getNote().toString() : "-"));
-        rightContent.add(addInfoLine("ABC Flag", 
+        rightContent.add(addInfoLine("ABC Flag",
                 notation.getFlagABC() != null ? notation.getFlagABC().toString() : "-"));
 
         rightCell.addElement(rightContent);
@@ -227,15 +216,15 @@ public class PdfServiceImpl implements PdfService {
 
         Paragraph leftContent = new Paragraph();
         leftContent.add(addInfoLine("Third Party ID rated", notation.getClientCode()));
-        leftContent.add(addInfoLine("Date, User name",
+        leftContent.add(addInfoLine("Date, Utilisateur",
                 (notation.getCreatedAt() != null ? notation.getCreatedAt().format(DATE_FORMATTER) : "-")
                         + " - " +
-                ((currentUser.getFirstName() != null ? currentUser.getFirstName() : "") + " " +
-                 (currentUser.getLastName() != null ? currentUser.getLastName() : "")).trim()));
-        leftContent.add(addInfoLine("Role, Organization",
+                        ((currentUser.getFirstName() != null ? currentUser.getFirstName() : "") + " " +
+                                (currentUser.getLastName() != null ? currentUser.getLastName() : "")).trim()));
+        leftContent.add(addInfoLine("Role, ORGANISATION",
                 currentUser.getRoles().stream().map(r -> r.getCode().name()).collect(Collectors.joining(", "))
                         + " - " + getCurrentUserEntiteCode()));
-        leftContent.add(addInfoLine("Methodology", "V3 - Target"));
+        leftContent.add(addInfoLine("Methodology", ""));
 
         leftCell.addElement(leftContent);
         mainTable.addCell(leftCell);
@@ -249,7 +238,7 @@ public class PdfServiceImpl implements PdfService {
         String note = notation.getNote() != null ? notation.getNote().toString() : "-";
         rightContent.add(addInfoLine("Computed Rating", note));
         rightContent.add(addInfoLine("Model's Rating", note));
-        rightContent.add(addInfoLine("Rating Status", "Validated"));
+        rightContent.add(addInfoLine("Rating Status", ""));
         rightContent.add(addInfoLine("ABC Flag",
                 notation.getFlagABC() != null ? notation.getFlagABC().toString() : "-"));
 
@@ -264,13 +253,15 @@ public class PdfServiceImpl implements PdfService {
      */
     private PdfPTable buildNotationTable(Notation notation) {
         Font headerFont = new Font(Font.HELVETICA, 9, Font.BOLD, Color.WHITE);
-        PdfPTable table = new PdfPTable(7);
+        PdfPTable table = new PdfPTable(4);
         table.setWidthPercentage(100);
         table.setSpacingAfter(12);
-        table.setWidths(new float[]{1.2f, 1.5f, 1.2f, 1.2f, 0.8f, 0.8f, 0.8f});
+        table.setWidths(new float[]{1.2f, 1.8f, 1.2f, 1.0f});
+
+        table.setKeepTogether(true);
 
         // En-têtes avec fond bleu foncé
-        Stream.of("Code", "Libelle", "Valeur", "Risque", "Poids L", "Poids ML", "Poids MH").forEach(col -> {
+        Stream.of("FACTEUR DE RISQUE", "LIBELLE", "Valeur", "NIVEAU DE RISQUE").forEach(col -> {
             PdfPCell cell = new PdfPCell(new Phrase(col, headerFont));
             cell.setBackgroundColor(HEADER_BG);
             cell.setHorizontalAlignment(Element.ALIGN_CENTER);
@@ -292,9 +283,7 @@ public class PdfServiceImpl implements PdfService {
             table.addCell(createPdfCell(libelle, bgColor, 9));
             table.addCell(createPdfCell(line.getValue(), bgColor, 9));
             table.addCell(createPdfCell(line.getRisk(), bgColor, 9));
-            table.addCell(createPdfCell(String.valueOf(line.getWeightL()), bgColor, 9));
-            table.addCell(createPdfCell(String.valueOf(line.getWeightMl()), bgColor, 9));
-            table.addCell(createPdfCell(String.valueOf(line.getWeightMh()), bgColor, 9));
+
         }
 
         return table;
@@ -308,20 +297,33 @@ public class PdfServiceImpl implements PdfService {
         PdfPTable productTable = new PdfPTable(2);
         productTable.setWidthPercentage(100);
         productTable.setSpacingAfter(12);
-        productTable.setWidths(new float[]{2, 1});
+        productTable.setWidths(new float[]{2.5f, 2.5f});
+
+        productTable.setKeepTogether(true);
+
+        productTable.getDefaultCell().setBorder(Rectangle.NO_BORDER);
+        productTable.getDefaultCell().setBorderWidth(0.5f);
+        productTable.getDefaultCell().setBorderColor(Color.LIGHT_GRAY);
 
         // En-têtes avec fond bleu foncé
-        Stream.of("Rule ID", "Rule description").forEach(col -> {
+        Stream.of("PRODUITS", "NIVEAU DE RISQUE").forEach(col -> {
             PdfPCell cell = new PdfPCell(new Phrase(col, headerFont));
             cell.setBackgroundColor(HEADER_BG);
             cell.setHorizontalAlignment(Element.ALIGN_CENTER);
             cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
             cell.setPadding(6);
+            cell.setBorder(Rectangle.TOP | Rectangle.LEFT | Rectangle.RIGHT);
+            cell.setBorderWidthTop(0.7f);
+            cell.setBorderWidthLeft(0.5f);
+            cell.setBorderWidthRight(0.5f);
+            cell.setBorderWidth(0.5f);
+            cell.setBorderColor(Color.DARK_GRAY);
             productTable.addCell(cell);
         });
 
         // Données avec zébrage
         boolean alternate = false;
+
         for (NotationLine line : notation.getNotationLines()) {
             if ("CH_PRODUCT".equals(line.getCode())) {
                 Optional<FieldConfiguration> fieldConfiguration = fieldConfigurationRepository.findByCode(line.getValue());
@@ -359,9 +361,12 @@ public class PdfServiceImpl implements PdfService {
         Font cellFont = new Font(Font.HELVETICA, fontSize, Font.NORMAL, Color.BLACK);
         PdfPCell cell = new PdfPCell(new Phrase(text != null ? text : "-", cellFont));
         cell.setBackgroundColor(bgColor);
-        cell.setPadding(5);
+        cell.setPadding(4);
         cell.setHorizontalAlignment(Element.ALIGN_LEFT);
         cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+
+        cell.setBorderWidth(0.5f);
+        cell.setBorderColor(Color.LIGHT_GRAY);
         return cell;
     }
 
@@ -375,4 +380,5 @@ public class PdfServiceImpl implements PdfService {
         }
         return user.getEntite().getCode();
     }
-}
+
+    }
